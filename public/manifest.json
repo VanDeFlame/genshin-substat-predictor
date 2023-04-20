@@ -1,0 +1,10 @@
+{
+  "short_name": "Substat Predictor",
+  "name": "Genshin Impact Substat Predictor",
+  "icons": [
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#000000",
+  "background_color": "#ffffff"
+}

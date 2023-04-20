@@ -1,50 +1,72 @@
-import { SUBSTATS_ORDER, SUBSTAT_RANGES, substats } from "./substats";
+import { Types } from "../data/artifacts";
+import { Stats } from "../data/stats";
+import { Substats, SUBSTATS_ORDER, Ranges, SUBSTATS_PROBABILITY } from "../data/substats";
+import { statFormatter } from "../formatters/statFormatter";
 
 type SubStat = {
   stat: string;
   levels: string[];
 };
 
+type StatKey = keyof typeof Stats;
+type SubstatKey = keyof typeof Substats;
+
 class Artifact {
-	private _phase: number = 0;
+	private _type: Types;
+	private _rolls = 0;
   private _mainStat: string;
   private _subStats: SubStat[];
-  private _prevSubstat: number = -1;
+  private _prevSubstat = -1;
 
 	constructor(
-    mainStat: string,
-    sub1: SubStat,
-    sub2: SubStat,
-    sub3: SubStat,
-    sub4: SubStat | null
-  ) {
-		this._phase = 0;
-    this._mainStat = mainStat;
-    this._subStats = [
-      sub1,
-      sub2,
-      sub3,
-    ];
-
-		if (sub4) this._subStats.push(sub4);
+		type: Types,
+		mainStat: string,
+    subStats: {stat: string, range: Ranges}[]
+	) {
+    this._type = type;
+		this._mainStat = mainStat;
+		this._subStats = subStats
+			.filter(sub => sub !== null)
+			.map((sub) => ({
+				stat: sub.stat,
+				levels: [sub.range]
+			}));
 	}
 
 	/* Getters */
-	get phase() {
-    return this._phase;
+	public get rolls() {
+    return this._rolls;
+  }
+	
+  get type() {
+    return this._type;
   }
 
   get mainStat() {
-    return this._mainStat;
+    return Stats[this._mainStat as StatKey];
   }
 
   get subStats() {
     return this._subStats;
   }
 
+	getSubstatValue(slot: number): number {		
+		const substat = this._subStats[slot - 1];
+		if (substat === undefined) return 0;
+
+		const stat = Substats[substat.stat as SubstatKey];
+
+		// Get the stat value. Sum the value of each range.
+		const value = substat.levels.reduce((acc, range) => {
+			return acc + stat.getRange(range);
+		}, 0);
+
+		return value;
+	}
+
 	/* "RNG" logic */
-	public nextPhase() {
-		this._phase++;
+	public nextRoll() {
+		this._rolls++;
 
 		if (this.subStats.length === 3) {
 			// Add a 4th substat
@@ -53,29 +75,20 @@ class Artifact {
 			this._prevSubstat = 3;
     } else {
 			// Add a lvl to a existent substat
-			const index = this.calcSubstatToLvl(this.phase);
+			const index = this.calcSubstatToLvl(this.rolls);
       this.addStatLvl(index, this.calcStatRange());
     }
   }	
 	
 	private calcStatRange(): string {
 		const index = Math.floor(Math.random() * 4);
-		return SUBSTAT_RANGES[index];
+		return Object.values(Ranges)[index];
 	}
 
 	/* Substat lvl */
-	private calcSubstatToLvl(phase: number): number {
-		// Calculate the base probabilities for each substat based on the phase
-		const baseProbabilities = [
-			[0.1, 0.4, 0.25, 0.25], // Phase 1
-			[0.15, 0.35, 0.35, 0.15], // Phase 2
-			[0.325, 0.225, 0.225, 0.225], // Phase 3
-			[0.225, 0.225, 0.225, 0.325], // Phase 4
-			[0.7, 0.1, 0.1, 0.1], // Phase 5
-		];
-		
-		// Apply the base probabilities for the given phase
-		let probabilities = baseProbabilities[phase - 1];
+	private calcSubstatToLvl(rolls: number): number {
+		// Calculate the base probabilities based on the rolls
+		const probabilities = SUBSTATS_PROBABILITY[rolls - 1];
 		
 		// Apply the bonus probabilities based on the previous substat level
 		const [prevIndex, prevProbability] = this.getPreviousSubstatProbability();
@@ -113,12 +126,12 @@ class Artifact {
 		const lastRange = prevSub.levels[iRange];
 
 		// max range
-		if (lastRange === SUBSTAT_RANGES[3]) {
+		if (lastRange === Ranges.MAX) {
 			return [iPrev, 0.25];
 		}
 
 		// high range
-		if (lastRange === SUBSTAT_RANGES[2]) {
+		if (lastRange === Ranges.HIGH) {
 			return [iPrev, 0.15];
 		}
 
@@ -129,7 +142,7 @@ class Artifact {
     const subStat = this._subStats[subStatIndex];
     subStat.levels.push(range);
 
-		console.log(`lvl: ${this.phase * 4} - ${subStat.stat} - ${range}`)
+		console.log(`lvl: ${this.rolls * 4} - ${subStat.stat} - ${range}`)
 
 		this._prevSubstat = subStatIndex;
   }
@@ -145,7 +158,7 @@ class Artifact {
 			levels: [range]
 		};
 
-		console.log(`lvl: ${this.phase * 4} - ${fourSubstat.stat} - ${range}`)
+		console.log(`lvl: ${this.rolls * 4} - ${fourSubstat.stat} - ${range}`)
 		return fourSubstat;
 	}
 
@@ -183,13 +196,13 @@ class Artifact {
 			/* Duplicated */
 			// If the mainstat is the same as the substat, index +1
 			if (this.mainStat === selectedStat) {
-				index + 1;
+				index += 1;
 				continue;
 			}
 			
 			// If the substat already exists in any of the first three substats, index +1
 			if (this.subStats.some(stat => stat.stat === selectedStat)) {
-				index + 1;
+				index += 1;
 				continue;
 			}
 
@@ -201,21 +214,21 @@ class Artifact {
 			/* 25% next */
 			// If the first or second substat has range "max", index +3
 			if (this.subStats[0].levels[0] === "max" || this.subStats[0].levels[0] === "max") {
-				index + 3;
+				index += 3;
 				continue;
 			}
 			
 			// If the mainstat is "BE" or "BF", index +4
-			if ((this.mainStat === "BE" || this.mainStat === "BF")) {
-				index + 4;
+			if ((this.mainStat === Stats.Elemental || this.mainStat === Stats.Physical)) {
+				index += 4;
 				continue;
 			}
 			
 			// Regular situation, index +1
-			index + 1;
+			index += 1;
 		} while (!isSuccess);
-		
-		return index;
+
+		return index % 10;
 	}
 
 	/* Formatters */
@@ -223,20 +236,15 @@ class Artifact {
 		const substat = this._subStats[index];
 		if (substat === undefined) return "";
 
-		type StatKey = keyof typeof substats;
-		const stat = substats[substat?.stat as StatKey];
-		
-		const value = substat.levels.reduce((acc, range) => {
-			return acc + stat.getRange(range);
-		}, 0);
-
-		return `${stat.name} - ${Math.round(value * 10) / 10} // ${substat.levels.join("-")}`
+		const stat = Substats[substat.stat as SubstatKey];
+		const value = this.getSubstatValue(index+1)
+		return `${stat.name} - ${statFormatter(value, stat.isFlat)} // ${substat.levels.join("-")}`
 	}
 
 	public toString(): string {
 		return `\nArtifact`
-			+ `\n\tLvl: ${this.phase * 4}`
-			+ `\n\tMain Stat: ${this._mainStat}`
+			+ `\n\tLvl: ${this.rolls * 4}`
+			+ `\n\tMain Stat: ${this.mainStat}`
 			+ `\n\t- ${this.subtatToString(0)}`
 			+ `\n\t- ${this.subtatToString(1)}`
 			+ `\n\t- ${this.subtatToString(2)}`
