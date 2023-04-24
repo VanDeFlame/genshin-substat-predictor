@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 // import './form.css';
 import { Types, allowedMainStats } from '../data/artifacts';
 import Form from 'react-bootstrap/esm/Form';
@@ -8,7 +8,7 @@ import { Ranges, Substats } from '../data/substats';
 import { SubstatForm } from './SubstatForm';
 
 interface FormProps {
-	createArtifact: (data: FormData) => void
+	createArtifact: (data: FormData, availableSubs: string[]) => void;
 }
 
 export interface FormData {
@@ -17,20 +17,22 @@ export interface FormData {
   subStats: {stat: string, range: Ranges}[];
 }
 
+const DEFAULT_SUBSTATS = [
+	{stat: 'none', range: Ranges.LOW},
+	{stat: 'none', range: Ranges.LOW},
+	{stat: 'none', range: Ranges.LOW},
+	{stat: 'none', range: Ranges.LOW},
+];
 
 export function ArtifactForm (props: FormProps) {
 	const [formData, setFormData] = useState<FormData>({
 		type: Types.Flower,
 		mainStat: allowedMainStats[Types.Flower][0],
-		subStats: [
-			{stat: 'none', range: Ranges.LOW},
-			{stat: 'none', range: Ranges.LOW},
-			{stat: 'none', range: Ranges.LOW},
-			{stat: 'none', range: Ranges.LOW},
-		]
+		subStats: DEFAULT_SUBSTATS
 	});
-	const mainStatOptions = allowedMainStats[formData.type];	
-	const subStatList = Object.values(Substats).map(ss => ss.name).filter(ss => ss !== formData.mainStat)
+	const mainStatOptions = allowedMainStats[formData.type];
+	
+	const subStatList = Object.keys(Substats).filter(key => Substats[key as keyof typeof Substats].name !== formData.mainStat);
 	const subStatOptions = subStatList.filter((subStat) => !formData.subStats.find(s => s?.stat === subStat));
 
 	const onChangeType = (event: any) => {
@@ -39,12 +41,7 @@ export function ArtifactForm (props: FormProps) {
 			...form,
 			type: value,
 			mainStat: allowedMainStats[value][0],
-			subStats: [
-				{stat: 'none', range: Ranges.LOW},
-				{stat: 'none', range: Ranges.LOW},
-				{stat: 'none', range: Ranges.LOW},
-				{stat: 'none', range: Ranges.LOW},
-			]
+			subStats: DEFAULT_SUBSTATS
 		}))
 	}
 
@@ -53,17 +50,19 @@ export function ArtifactForm (props: FormProps) {
 		setFormData((form) => ({
 			...form,
 			mainStat: value,
+			subStats: DEFAULT_SUBSTATS
 		}));
 	}
 
 	const onChangeSubstat = (index: number, value: string) => {
-		setFormData((form) => ({
-			...form,
-			subStats: formData.subStats.map((ss, i) => {
+		setFormData((form) => {
+			const subs = form.subStats.map((ss, i) => {
 				if (i !== index) return ss;
 				return { stat: value, range: Ranges.LOW }
-			}),
-		}))
+			});
+			
+			return { ...form, subStats: subs }
+		})
 	}
 
 	const onChangeSubstatRange = (index: number, value: Ranges) => {
@@ -75,7 +74,15 @@ export function ArtifactForm (props: FormProps) {
 
 	const onSubmit = (event: any) => {
     event.preventDefault();
-    props.createArtifact(formData);
+
+		// 1st, 2nd, and 3rd substats can't be 'none'. 4th substat is optional.
+		if (
+			formData.subStats[0].stat === 'none' ||
+			formData.subStats[1].stat === 'none' ||
+			formData.subStats[2].stat === 'none'
+		) return alert('Incomplete artifact');
+
+    props.createArtifact(formData, subStatOptions);
   }
 
 	return (
@@ -93,6 +100,7 @@ export function ArtifactForm (props: FormProps) {
 					className='border border-white rounded-2'
 					onChange={onChangeType}
 					value={formData.type}
+					required
 				>{
 					Object.values(Types).map(type =>
 						<option key={'type-'+type} value={type}>{type}</option>
@@ -107,6 +115,7 @@ export function ArtifactForm (props: FormProps) {
 					className='border border-white rounded-2'
 					onChange={onChangeMainstat}
 					value={formData.mainStat}
+					required
 				>{
 					mainStatOptions.map(ms => 
 						<option key={'mainstat-'+ms} value={ms}>{ms}</option>
@@ -132,8 +141,8 @@ export function ArtifactForm (props: FormProps) {
 			</Form.Group>
 
 			{/* SUBMIT BUTTON */}
-			<Button variant="primary" type="submit">
-        Submit
+			<Button variant="primary" type="submit" className="mt-auto">
+        Create
       </Button>
 		</Form>
 	);

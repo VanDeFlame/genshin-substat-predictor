@@ -27,6 +27,7 @@ class Artifact {
 		this._mainStat = mainStat;
 		this._subStats = subStats
 			.filter(sub => sub !== null)
+			.filter(sub => sub.stat !== 'none')
 			.map((sub) => ({
 				stat: sub.stat,
 				levels: [sub.range]
@@ -43,18 +44,18 @@ class Artifact {
   }
 
   get mainStat() {
-    return Stats[this._mainStat as StatKey];
+    return this._mainStat;
   }
 
   get subStats() {
     return this._subStats;
   }
 
-	getSubstatValue(slot: number): number {		
-		const substat = this._subStats[slot - 1];
-		if (substat === undefined) return 0;
+	public static getSubstatValue(substat: SubStat): number {
+		if (!substat) return 0;
 
 		const stat = Substats[substat.stat as SubstatKey];
+		if (stat === undefined) return 0;
 
 		// Get the stat value. Sum the value of each range.
 		const value = substat.levels.reduce((acc, range) => {
@@ -237,7 +238,7 @@ class Artifact {
 		if (substat === undefined) return "";
 
 		const stat = Substats[substat.stat as SubstatKey];
-		const value = this.getSubstatValue(index+1)
+		const value = Artifact.getSubstatValue(substat);
 		return `${stat.name} - ${statFormatter(value, stat.isFlat)} // ${substat.levels.join("-")}`
 	}
 

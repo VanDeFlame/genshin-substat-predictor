@@ -16,14 +16,25 @@ for (let index = 0; index < 5; index++) {
   //   { stat: "CR", levels: [Ranges.HIGH] }, // SubStat3
   //   // no SubStat4
   // )
+	// const artifact = new Artifact(
+	// 	Types.Goblet,
+  //   "Elemental", // mainStat
+  //   [
+	// 		{ stat: "HPFlat", range: Ranges.MAX }, // SubStat1
+	// 		{ stat: "DEF", range: Ranges.MAX }, // SubStat2
+	// 		{ stat: "CD", range: Ranges.HIGH }, // SubStat3
+	// 		// no SubStat4
+	// 	]
+  // )
+
 	const artifact = new Artifact(
-		Types.Goblet,
-    "Elemental", // mainStat
+		Types.Circlet,
+    "CRIT DMG%", // mainStat
     [
-			{ stat: "HPFlat", range: Ranges.MAX }, // SubStat1
-			{ stat: "DEF", range: Ranges.MAX }, // SubStat2
-			{ stat: "CD", range: Ranges.HIGH }, // SubStat3
-			// no SubStat4
+			{ stat: "HP", range: Ranges.MEDIUM }, // SubStat1
+			{ stat: "EM", range: Ranges.HIGH }, // SubStat2
+			{ stat: "DEF", range: Ranges.HIGH }, // SubStat3
+			{ stat: "HPFlat", range: Ranges.LOW }, // SubStat4
 		]
   )
 

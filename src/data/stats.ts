@@ -1,15 +1,15 @@
 export enum Stats {
   HPFlat		 = "HP",
-  HP				 = "HP%",
+  HP				 = "HP %",
   ATKFlat		 = "ATK",
-  ATK				 = "ATK%",
+  ATK				 = "ATK %",
   DEFFlat		 = "DEF",
-  DEF				 = "DEF%",
-  CR				 = "CRIT Rate%",
-  CD				 = "CRIT DMG%",
-  ER				 = "Energy Recharge%",
+  DEF				 = "DEF %",
+  CR				 = "CRIT Rate %",
+  CD				 = "CRIT DMG %",
+  ER				 = "Energy Recharge %",
   EM				 = "Elemental Mastery",
-  HB				 = "Healing Bonus%",
-  Elemental	 = "Elemental DMG Bonus%", // doesn't matter the specific element
-  Physical	 = "Physical DMG Bonus%",
+  HB				 = "Healing Bonus %",
+  Elemental	 = "Elemental DMG Bonus %", // doesn't matter the specific element
+  Physical	 = "Physical DMG Bonus %",
 }

@@ -9,7 +9,7 @@ class Substat {
   ) {}
 
 	public getRange(range: string): number {
-		switch(range) {
+		switch(range.toLowerCase()) {
 			case "low": 		return this.low;
 			case "medium": 	return this.medium;
 			case "high": 		return this.high;
