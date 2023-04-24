@@ -1,4 +1,4 @@
-import { statFormatter } from "../formatters/statFormatter";
+import { statFormatter } from "../utils/statFormatter";
 
 test("formats percents correctly", () => {
 	/* SUBSTATS */

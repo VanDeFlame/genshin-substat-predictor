@@ -5,9 +5,11 @@ import { SubstatShowcase } from './SubstatShowcase';
 
 interface ShowcaseProps {
 	artifact: Artifact;
+	disabled: boolean;
+	nextRoll: () => void;
 }
 
-export function ArtifactShowcase ({artifact}: ShowcaseProps) {
+export function ArtifactShowcase ({ artifact, disabled, nextRoll }: ShowcaseProps) {
 	return (
 		<div 
 			className='p-2 d-flex flex-column justify-content-between border border-white rounded-2'
@@ -45,17 +47,23 @@ export function ArtifactShowcase ({artifact}: ShowcaseProps) {
 				>{
 
 					artifact.subStats.map((substat, i) => (
-						<>
-							<SubstatShowcase substat={substat} key={'substat-showcase'+substat} />
+						<React.Fragment key={'substat-showcase'+i}>
+							<SubstatShowcase substat={substat} key={'substat-showcase'+i+substat} />
 							{	(i !== 3) && <hr className="mt-2" style={{ marginBottom: '7px' }} /> }
-						</>
+						</React.Fragment>
 					))
 
 				}</ol>
 			</div>
 
 			{/* SUBMIT BUTTON */}
-			<Button variant="primary" type="submit" className="mt-auto">
+			<Button 
+				variant="primary"
+				type="submit"
+				className="mt-auto"
+				onClick={nextRoll}
+				disabled={disabled}
+			>
 				Next Roll
 			</Button>
 		</div>

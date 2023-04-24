@@ -1,6 +1,6 @@
 import React from 'react';
 import { Substats } from '../data/substats';
-import { statFormatter } from '../formatters/statFormatter';
+import { statFormatter } from '../utils/statFormatter';
 import { Artifact } from '../model/artifact';
  
 interface Props {
@@ -10,7 +10,7 @@ interface Props {
 	};
 }
  
-function SubstatShowcase ({substat}: Props) {
+export function SubstatShowcase ({substat}: Props) {
 	const sub = Substats[substat.stat as keyof typeof Substats];
 	return (
 		<li 
@@ -31,6 +31,3 @@ function SubstatShowcase ({substat}: Props) {
 		</li>
 	);
 }
- 
-export { SubstatShowcase };
- 

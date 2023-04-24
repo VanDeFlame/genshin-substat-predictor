@@ -1,7 +1,8 @@
 import React from 'react';
 import Form from 'react-bootstrap/esm/Form';
-import { statFormatter } from '../formatters/statFormatter';
-import { Ranges, Substats } from '../data/substats';
+import { statFormatter } from '../utils/statFormatter';
+import { Ranges } from '../data/substats';
+import { getSubstat, getSubstatName } from '../utils/getStat';
 
 interface SubstatProps {
 	index: number;
@@ -11,13 +12,11 @@ interface SubstatProps {
 	onChangeSubstatRange: (index: number, value: Ranges) => void;
 }
 
-type SubstatKey = keyof typeof Substats;
-
-function SubstatForm (props: SubstatProps) {
+export function SubstatForm (props: SubstatProps) {
 	const {	index, substat, subStatOptions } = props;
 
 	const getRange = (substat: string, range: string) => {
-		const sub = Substats[substat as keyof typeof Substats];
+		const sub = getSubstat(substat);
 		if (!sub) return 0;
 
 		const rangeNumber = sub.getRange(range.toLowerCase());
@@ -36,7 +35,7 @@ function SubstatForm (props: SubstatProps) {
 				{(index === 3 && substat.stat !== 'none') && <option value='none'>none</option>}
 				{[substat.stat, ...subStatOptions].map(ss => 
 					<option key={'substat-1-'+ss} value={ss}>{
-						Substats[ss as SubstatKey]?.name ?? 'none'
+						getSubstatName(ss) ?? 'none'
 					}</option>
 				)}
 			</Form.Select>
@@ -60,5 +59,3 @@ function SubstatForm (props: SubstatProps) {
 		</li>
 	);
 }
-
-export { SubstatForm };

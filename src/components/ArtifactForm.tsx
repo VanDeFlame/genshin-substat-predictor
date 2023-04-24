@@ -6,6 +6,7 @@ import Button from 'react-bootstrap/esm/Button';
 import { Stats } from '../data/stats';
 import { Ranges, Substats } from '../data/substats';
 import { SubstatForm } from './SubstatForm';
+import { getSubstatName } from '../utils/getStat';
 
 interface FormProps {
 	createArtifact: (data: FormData, availableSubs: string[]) => void;
@@ -32,7 +33,7 @@ export function ArtifactForm (props: FormProps) {
 	});
 	const mainStatOptions = allowedMainStats[formData.type];
 	
-	const subStatList = Object.keys(Substats).filter(key => Substats[key as keyof typeof Substats].name !== formData.mainStat);
+	const subStatList = Object.keys(Substats).filter(key => getSubstatName(key) !== formData.mainStat);
 	const subStatOptions = subStatList.filter((subStat) => !formData.subStats.find(s => s?.stat === subStat));
 
 	const onChangeType = (event: any) => {

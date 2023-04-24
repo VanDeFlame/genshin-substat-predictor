@@ -1,22 +1,16 @@
 import { Types } from "../data/artifacts";
-import { Stats } from "../data/stats";
-import { Substats, SUBSTATS_ORDER, Ranges, SUBSTATS_PROBABILITY } from "../data/substats";
-import { statFormatter } from "../formatters/statFormatter";
-
-type SubStat = {
-  stat: string;
-  levels: string[];
-};
-
-type StatKey = keyof typeof Stats;
-type SubstatKey = keyof typeof Substats;
+import { Ranges } from "../data/substats";
+import { getSubstat } from "../utils/getStat";
+import { statFormatter } from "../utils/statFormatter";
+import { artifactSubStat } from "./artifactSubstat";
 
 class Artifact {
-	private _type: Types;
+	private readonly _type: Types;
 	private _rolls = 0;
-  private _mainStat: string;
-  private _subStats: SubStat[];
+  private readonly _mainStat: string;
+  private _subStats: artifactSubStat[];
   private _prevSubstat = -1;
+  private readonly _isFull: boolean;
 
 	constructor(
 		type: Types,
@@ -32,29 +26,64 @@ class Artifact {
 				stat: sub.stat,
 				levels: [sub.range]
 			}));
-	}
+		
+		this._isFull = (this._subStats.length === 4);
+	}	
 
-	/* Getters */
-	public get rolls() {
+	/* Getters and Setters */
+	get rolls() {
     return this._rolls;
   }
+
+	private set rolls(jump: number) {
+		if (jump < 0) return;
+		if (jump > 5) return;
+		this._rolls = jump;
+	}
 	
-  get type() {
+  get type(): Types {
     return this._type;
   }
 
-  get mainStat() {
+  get mainStat(): string {
     return this._mainStat;
   }
 
-  get subStats() {
+  get prevSubstat(): number {
+    return this._prevSubstat;
+  }
+
+	set prevSubstat(index: number) {
+		if (index < -1) return;
+		if (index > 3) return;
+		this._prevSubstat = index;
+	}
+
+  get isFull(): boolean {
+    return this._isFull;
+  }
+
+  get subStats(): artifactSubStat[] {
     return this._subStats;
   }
 
-	public static getSubstatValue(substat: SubStat): number {
+	get substatList(): string[] {
+		return this.subStats.map(ss => ss.stat);
+	}
+
+	getLastRangeUpgrade(): string {
+		if (this.prevSubstat === -1) return '';
+		const prevSub = this.subStats[this.prevSubstat];
+		if (!prevSub) return '';
+
+		const iRange = prevSub.levels.length - 1
+		return prevSub.levels[iRange];
+	}
+
+	public static getSubstatValue(substat: artifactSubStat): number {
 		if (!substat) return 0;
 
-		const stat = Substats[substat.stat as SubstatKey];
+		const stat = getSubstat(substat.stat);
 		if (stat === undefined) return 0;
 
 		// Get the stat value. Sum the value of each range.
@@ -66,178 +95,34 @@ class Artifact {
 	}
 
 	/* "RNG" logic */
-	public nextRoll() {
-		this._rolls++;
+	public nextRoll(substat: string, range: string) {
+		this.rolls++;
 
-		if (this.subStats.length === 3) {
+		if (!this.isFull && this.rolls === 1) {
 			// Add a 4th substat
-			const newStat = this.generateFourStat();
+			const newStat = {
+				stat: substat,
+				levels: [	Ranges[range as keyof typeof Ranges] ]
+			}
 			this._subStats.push(newStat);
-			this._prevSubstat = 3;
+			this.prevSubstat = 3;
     } else {
 			// Add a lvl to a existent substat
-			const index = this.calcSubstatToLvl(this.rolls);
-      this.addStatLvl(index, this.calcStatRange());
-    }
-  }	
+			const subStatIndex = this.subStats.findIndex(ss => ss.stat === substat)
+			const sub = this.subStats[subStatIndex];
+			sub.levels.push(range);
 	
-	private calcStatRange(): string {
-		const index = Math.floor(Math.random() * 4);
-		return Object.values(Ranges)[index];
-	}
-
-	/* Substat lvl */
-	private calcSubstatToLvl(rolls: number): number {
-		// Calculate the base probabilities based on the rolls
-		const probabilities = SUBSTATS_PROBABILITY[rolls - 1];
-		
-		// Apply the bonus probabilities based on the previous substat level
-		const [prevIndex, prevProbability] = this.getPreviousSubstatProbability();
-		if (prevIndex !== -1) {
-			probabilities[prevIndex-1] += prevProbability
-		}
-
-		return this.rollForSubstat(probabilities);
-	}
-	
-	private rollForSubstat(probabilities: number[]): number {
-    const rand = Math.random();
-    let probSum = 0;
-
-    for (let i = 0; i < probabilities.length; i++) {
-      probSum += probabilities[i];
-
-      if (rand < probSum) {
-        return i;
-      }
+			console.log(`lvl: ${this.rolls * 4} - ${sub.stat} - ${range}`)
+			this.prevSubstat = subStatIndex;
     }
-
-    // This should never happen, but just in case
-    return probabilities.length - 1;
   }
-
-	private getPreviousSubstatProbability() {
-		const iPrev = this._prevSubstat;
-		if (iPrev === -1) return [iPrev, 0];
-		
-		const prevSub = this._subStats[iPrev];
-		if (prevSub === undefined) return [-1, 0];
-
-		const iRange = prevSub.levels.length - 1
-		const lastRange = prevSub.levels[iRange];
-
-		// max range
-		if (lastRange === Ranges.MAX) {
-			return [iPrev, 0.25];
-		}
-
-		// high range
-		if (lastRange === Ranges.HIGH) {
-			return [iPrev, 0.15];
-		}
-
-		return [-1, 0]
-	}
-
-	private addStatLvl(subStatIndex: number, range: string) {
-    const subStat = this._subStats[subStatIndex];
-    subStat.levels.push(range);
-
-		console.log(`lvl: ${this.rolls * 4} - ${subStat.stat} - ${range}`)
-
-		this._prevSubstat = subStatIndex;
-  }
-
-	/* 4th Substat */
-	public generateFourStat(): SubStat {
-		let index = this.getInitialIndex(this.subStats);
-		index = this.calcProbabilities(index);
-
-		const range = this.calcStatRange();
-		const fourSubstat: SubStat = {
-			stat: SUBSTATS_ORDER[index],
-			levels: [range]
-		};
-
-		console.log(`lvl: ${this.rolls * 4} - ${fourSubstat.stat} - ${range}`)
-		return fourSubstat;
-	}
-
-	private getInitialIndex(subStats: SubStat[]): number {
-		// 55% of the time substat3 + 1 is selected
-		if (Math.random() < 0.55) {
-			return SUBSTATS_ORDER.indexOf(subStats[2].stat) + 1;
-		}
-		
-		// 20% of the time a substat with range "max" + 1 is selected
-		const maxIndexes = subStats
-			.map((subStat, index) => subStat.levels[0] === "max" ? index : -1) // If it's not "max", we return -1 to discard it
-			.filter(index => index !== -1); // Discard the -1 values
-
-		if (maxIndexes.length > 0 && Math.random() < 0.2) {
-			const randomIndex = maxIndexes[Math.floor(Math.random() * maxIndexes.length)];
-			return SUBSTATS_ORDER.indexOf(
-				SUBSTATS_ORDER[randomIndex]
-			) + 1;
-		}
-		
-		// 25% of the time any substat + 1 is selected
-		const randomIndex = Math.floor(Math.random() * 3);
-		const selectedSubStat = subStats[randomIndex];
-		return SUBSTATS_ORDER.indexOf(selectedSubStat.stat) + 1;
-	}
-
-	private calcProbabilities(firstIndex: number): number {
-		let isSuccess = false;
-		let index = firstIndex;
-
-		do {
-			const selectedStat = SUBSTATS_ORDER[index];
-
-			/* Duplicated */
-			// If the mainstat is the same as the substat, index +1
-			if (this.mainStat === selectedStat) {
-				index += 1;
-				continue;
-			}
-			
-			// If the substat already exists in any of the first three substats, index +1
-			if (this.subStats.some(stat => stat.stat === selectedStat)) {
-				index += 1;
-				continue;
-			}
-
-			/* 75% succeed */
-			if(Math.random() < 0.75) {
-				isSuccess = true;
-			}
-
-			/* 25% next */
-			// If the first or second substat has range "max", index +3
-			if (this.subStats[0].levels[0] === "max" || this.subStats[0].levels[0] === "max") {
-				index += 3;
-				continue;
-			}
-			
-			// If the mainstat is "BE" or "BF", index +4
-			if ((this.mainStat === Stats.Elemental || this.mainStat === Stats.Physical)) {
-				index += 4;
-				continue;
-			}
-			
-			// Regular situation, index +1
-			index += 1;
-		} while (!isSuccess);
-
-		return index % 10;
-	}
 
 	/* Formatters */
 	public subtatToString(index: number): string {
-		const substat = this._subStats[index];
+		const substat = this.subStats[index];
 		if (substat === undefined) return "";
 
-		const stat = Substats[substat.stat as SubstatKey];
+		const stat = getSubstat(substat.stat);
 		const value = Artifact.getSubstatValue(substat);
 		return `${stat.name} - ${statFormatter(value, stat.isFlat)} // ${substat.levels.join("-")}`
 	}
