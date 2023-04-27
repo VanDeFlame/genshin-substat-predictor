@@ -19,7 +19,7 @@ export function ArtifactShowcase ({ artifact, disabled, nextRoll }: ShowcaseProp
 			<div className="mb-3">
 				<div className="d-flex justify-content-between align-items-center">
 					<label>
-						<img src={`/Icon_${artifact.type}.webp`} />
+						<img src={`assets/Icon${artifact.type.replaceAll(' ', '')}.webp`} />
 					</label>
 					
 					{/* ARTIFACT LEVEL */}

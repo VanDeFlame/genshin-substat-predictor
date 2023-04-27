@@ -1,5 +1,4 @@
-import React, { useEffect, useState } from 'react';
-// import './form.css';
+import React, { useState } from 'react';
 import { Types, allowedMainStats } from '../data/artifacts';
 import Form from 'react-bootstrap/esm/Form';
 import Button from 'react-bootstrap/esm/Button';
@@ -95,7 +94,7 @@ export function ArtifactForm (props: FormProps) {
 			{/* ARTIFACT TYPE */}
 			<Form.Group className="mb-3" controlId="artifactType">
 				<Form.Label>
-					<img src={`/Icon_${formData.type}.webp`} />
+					<img src={`assets/Icon${formData.type.replaceAll(' ', '')}.webp`} />
 				</Form.Label>
 				<Form.Select
 					className='border border-white rounded-2'

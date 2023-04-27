@@ -1,8 +1,7 @@
 {
   "name": "genshin-substat-predictor",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "private": true,
   "scripts": {
     "start": "vite",
     "build": "tsc && vite build",
@@ -13,9 +12,10 @@
     "predeploy": "npm run build",
     "deploy": "gh-pages -d dist"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": ["genshin", "genshin impact", "genshin artifact"],
+  "author": "vandeflame",
+  "license": "MIT",
+	"homepage": "https://vandeflame.github.io/genshin-substat-predictor/",
   "devDependencies": {
     "@types/bootstrap": "^5.2.6",
     "@types/jest": "^29.5.0",
